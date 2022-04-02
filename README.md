@@ -11,6 +11,8 @@ the sample images, it took a day or so for my ISP to resolve the issue.
 
 This repo requires Airflow to be previously installed.  See https://github.com/apache/airflow
 
+![Process map](Process.png)
+
 ## Setup
 1. Copy Ping_time.py into your airflow/dags directory
 2. Insert server ping address on line 47.  You can use a DNS server from your ISP.  DO NOT PING 
