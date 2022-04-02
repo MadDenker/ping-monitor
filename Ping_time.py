@@ -42,8 +42,8 @@ def ping_site(data_interval_start=None, data_interval_end=None, **kwargs) -> Non
     
     print("Start: " + str(data_interval_start)+ " End: " + str(data_interval_end))
     address = ""  # Server I can ping regularly
-    count = 8
-    pause = 1
+    count = 8     # Number of times to ping server
+    pause = 1     # Pause time between pings
     
     cmd = "ping -c {} -W {} {}".format(count, pause, address).split(' ')
     
@@ -121,21 +121,21 @@ def write_plots(**kwargs) -> None:
     
     print("producing time series plot")
     ax = png.plot(x='datetime', y=['avg_ping','min_ping','max_ping']).legend(loc='upper left', fontsize=10)
-    ax.figure.savefig(path + 'avg_ping_plot.png', dpi=150)
+    ax.figure.savefig(path + 'avg_ping_plot.png', dpi=120)
     ax.figure.clear()
     
+    print("producing histogram")
+    ax3 = sns.histplot(png[['avg_ping', 'max_ping', 'min_ping']], bins=50).set_title("Ping time Histogram")
+    ax3.figure.savefig(path + 'ping_histogram.png', dpi=120)
+    ax3.figure.clear()
     
     print("producing heat map")
     pvt = png[png['datetime']>(today - timed)].pivot_table(values='apint', index='doy', columns='hour', aggfunc='mean')
     #png.style.background_gradient(cmap='coolwarm').set_properties(**{'font-size': '20px'})
     f2, ax2 = plt.subplots(figsize=(6, 10))
     ax2 = sns.heatmap(pvt, cmap='coolwarm', linewidths=0.30, annot=False).set_title("Average Ping Time")
-    ax2.figure.savefig(path + 'ping_heatmap.png', dpi=150)
+    ax2.figure.savefig(path + 'ping_heatmap.png', dpi=120)
 
-    print("producing histogram")
-    ax3 = sns.histplot(png[['avg_ping', 'max_ping', 'min_ping']], bins=50).set_title("Ping time Histogram")
-    ax3.figure.savefig(path + 'ping_histogram.png', dpi=150)
-    
     print("Ping time plots complete")
     return
 
@@ -147,7 +147,7 @@ with DAG(dag_id='Ping_Time_Monitor',
          catchup=False
          ) as dag:
     # Define a Dummy task that does nothing.
-    start_task = DummyOperator(task_id='Start', retries=3)
+    start_task = DummyOperator(task_id='Start', retries=1)
     
     # Define a task that writes the average ping time to an Address.
     ping_address_task = PythonOperator(task_id='ping_site', python_callable=ping_site, retries=1)
@@ -155,7 +155,7 @@ with DAG(dag_id='Ping_Time_Monitor',
     # Define a task that writes the average ping time to an Address.
     plot_ping_times = PythonOperator(task_id='plot_ping_times', python_callable=write_plots, retries=1)
     
-    end_task = DummyOperator(task_id='End', retries=3)
+    end_task = DummyOperator(task_id='End', retries=1)
     
     # Declare order of task execution.
     start_task >> ping_address_task >> plot_ping_times >> end_task
